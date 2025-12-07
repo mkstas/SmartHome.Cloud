@@ -7,7 +7,7 @@ services:
       - POSTGRES_PASSWORD=root
       - POSTGRES_DB=pozor_dom_auth_service
     ports:
-      - 5434:5432
+      - 5432:5432
     volumes:
       - auth_postgres_data:/var/lib/postgresql/data
     networks:
@@ -22,7 +22,7 @@ services:
     ports:
       - 5000:8080
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_ENVIRONMENT=Production
     depends_on:
       - pozor_dom_auth_postgres
     networks:
@@ -42,7 +42,24 @@ services:
       - microservices_net
     restart: unless-stopped
 
+  pozord_dom_pgadmin:
+    container_name: pozord_dom_pgadmin
+    image: dpage/pgadmin4:9.10
+    environment:
+      PGADMIN_DEFAULT_EMAIL: root@local.com
+      PGADMIN_DEFAULT_PASSWORD: root
+    ports:
+      - 5050:80
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - pozor_dom_auth_postgres
+    networks:
+      - microservices_net
+
 volumes:
+  pgadmin_data:
+    driver: local
   auth_postgres_data:
     driver: local
 
