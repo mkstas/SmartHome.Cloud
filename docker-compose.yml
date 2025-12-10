@@ -2,82 +2,43 @@ services:
   pozor_dom_auth_postgres:
     image: postgres:18.1-alpine3.22
     container_name: pozor_dom_auth_postgres
+    env_file:
+      - .env.development
     environment:
-      - POSTGRES_USER=root
-      - POSTGRES_PASSWORD=root
-      - POSTGRES_DB=pozor_dom_auth_service
-    ports:
-      - 5434:5432
+      - POSTGRES_USER=${AUTH_POSTGRES_USER}
+      - POSTGRES_PASSWORD=${AUTH_POSTGRES_PASSWORD}
+      - POSTGRES_DB=${AUTH_POSTGRES_DB}
     volumes:
       - auth_postgres_data:/var/lib/postgresql/data
-    networks:
-      - microservices_net
-    restart: unless-stopped
-
-  pozor_dom_auth_service:
-    build:
-      context: PozorDomAuthService
-      dockerfile: Dockerfile
-    container_name: pozor_dom_auth_service
     ports:
-      - 5000:8080
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-    depends_on:
-      - pozor_dom_auth_postgres
+      - ${AUTH_POSTGRES_PORT}:5432
     networks:
-      - microservices_net
-    restart: unless-stopped
+      - microservices
 
   pozor_dom_store_postgres:
     image: postgres:18.1-alpine3.22
     container_name: pozor_dom_store_postgres
+    env_file:
+      - .env.development
     environment:
-      - POSTGRES_USER=root
-      - POSTGRES_PASSWORD=root
-      - POSTGRES_DB=pozor_dom_store_service
-    ports:
-      - 5435:5432
+      - POSTGRES_USER=${STORE_POSTGRES_USER}
+      - POSTGRES_PASSWORD=${STORE_POSTGRES_PASSWORD}
+      - POSTGRES_DB=${STORE_POSTGRES_DB}
     volumes:
       - store_postgres_data:/var/lib/postgresql/data
-    networks:
-      - microservices_net
-    restart: unless-stopped
-
-  pozor_dom_store_service:
-    build:
-      context: PozorDomStoreService
-      dockerfile: Dockerfile
-    container_name: pozor_dom_store_service
     ports:
-      - 5000:8080
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-    depends_on:
-      - pozor_dom_store_postgres
+      - ${STORE_POSTGRES_PORT}:5432
     networks:
-      - microservices_net
-    restart: unless-stopped
-
-  pozor_dom_gateway:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: pozor_dom_gateway
-    ports:
-      - 80:80
-    depends_on:
-      - pozor_dom_auth_service
-    networks:
-      - microservices_net
-    restart: unless-stopped
+      - microservices
 
   pozord_dom_pgadmin:
     container_name: pozord_dom_pgadmin
     image: dpage/pgadmin4:9.10
+    env_file:
+      - .env.development
     environment:
-      PGADMIN_DEFAULT_EMAIL: root@local.com
-      PGADMIN_DEFAULT_PASSWORD: root
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
     ports:
       - 5050:80
     volumes:
@@ -86,13 +47,60 @@ services:
       - pozor_dom_auth_postgres
       - pozor_dom_store_postgres
     networks:
+      - microservices
+
+  pozor_dom_auth_service:
+    build:
+      context: PozorDomAuthService
+      dockerfile: Dockerfile
+    container_name: pozor_dom_auth_service
+    env_file:
+      - .env.development
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+    ports:
+      - ${AUTH_SERVICE_PORT}:8090
+    depends_on:
+      - pozor_dom_auth_postgres
+    networks:
+      - microservices
+
+  pozor_dom_store_service:
+    build:
+      context: PozorDomAuthService
+      dockerfile: Dockerfile
+    container_name: pozor_dom_store_service
+    env_file:
+      - .env.development
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+    ports:
+      - ${STORE_SERVICE_PORT}:8090
+    depends_on:
+      - pozor_dom_store_postgres
+    networks:
+      - microservices
+
+  pozor_dom_gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pozor_dom_gateway
+    env_file:
+      - .env.development
+    ports:
+      - ${GATEWAY_PORT}:8090
+    depends_on:
+      - pozor_dom_auth_service
+      - pozor_dom_store_service
+    networks:
       - microservices_net
 
 volumes:
-  - pgadmin_data
-  - auth_postgres_data
-  - store_postgres_data
+  auth_postgres_data:
+  store_postgres_data:
+  pgadmin_data:
 
 networks:
-  microservices_net:
+  microservices:
     driver: bridge
