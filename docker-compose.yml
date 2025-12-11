@@ -2,8 +2,6 @@ services:
   pozor_dom_auth_postgres:
     image: postgres:18.1-alpine3.22
     container_name: pozor_dom_auth_postgres
-    env_file:
-      - .env.development
     environment:
       - POSTGRES_USER=${AUTH_POSTGRES_USER}
       - POSTGRES_PASSWORD=${AUTH_POSTGRES_PASSWORD}
@@ -18,8 +16,6 @@ services:
   pozor_dom_store_postgres:
     image: postgres:18.1-alpine3.22
     container_name: pozor_dom_store_postgres
-    env_file:
-      - .env.development
     environment:
       - POSTGRES_USER=${STORE_POSTGRES_USER}
       - POSTGRES_PASSWORD=${STORE_POSTGRES_PASSWORD}
@@ -34,8 +30,6 @@ services:
   pozord_dom_pgadmin:
     container_name: pozord_dom_pgadmin
     image: dpage/pgadmin4:9.10
-    env_file:
-      - .env.development
     environment:
       - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
       - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
@@ -54,12 +48,10 @@ services:
       context: PozorDomAuthService
       dockerfile: Dockerfile
     container_name: pozor_dom_auth_service
-    env_file:
-      - .env.development
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
     ports:
-      - ${AUTH_SERVICE_PORT}:8090
+      - ${AUTH_SERVICE_PORT}:8080
     depends_on:
       - pozor_dom_auth_postgres
     networks:
@@ -67,15 +59,13 @@ services:
 
   pozor_dom_store_service:
     build:
-      context: PozorDomAuthService
+      context: PozorDomStoreService
       dockerfile: Dockerfile
     container_name: pozor_dom_store_service
-    env_file:
-      - .env.development
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
     ports:
-      - ${STORE_SERVICE_PORT}:8090
+      - ${STORE_SERVICE_PORT}:8080
     depends_on:
       - pozor_dom_store_postgres
     networks:
@@ -86,15 +76,13 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: pozor_dom_gateway
-    env_file:
-      - .env.development
     ports:
-      - ${GATEWAY_PORT}:8090
+      - ${GATEWAY_PORT}:${GATEWAY_PORT}
     depends_on:
       - pozor_dom_auth_service
       - pozor_dom_store_service
     networks:
-      - microservices_net
+      - microservices
 
 volumes:
   auth_postgres_data:
