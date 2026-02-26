@@ -20,6 +20,27 @@ services:
     networks:
       - microservices
 
+  pozor_dom_device_postgres:
+    image: postgres:18.1-alpine3.22
+    container_name: pozor_dom_device_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DEVICE_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${DEVICE_POSTGRES_PASSWORD}
+      POSTGRES_DB: ${DEVICE_POSTGRES_DB}
+    volumes:
+      - device_postgres_data:/var/lib/postgresql/data
+    ports:
+      - ${DEVICE_POSTGRES_PORT}:5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${AUTH_POSTGRES_USER}"]
+      interval: 15s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+    networks:
+      - microservices
+
   pozord_dom_pgadmin:
     image: dpage/pgadmin4:9.10
     container_name: pozord_dom_pgadmin
@@ -33,6 +54,8 @@ services:
       - pgadmin_data:/var/lib/pgadmin
     depends_on:
       pozor_dom_auth_postgres:
+        condition: service_healthy
+      pozor_dom_device_postgres:
         condition: service_healthy
     networks:
       - microservices
@@ -53,6 +76,22 @@ services:
     networks:
       - microservices
 
+  pozor_dom_device_service:
+    build:
+      context: DeviceService
+      dockerfile: Dockerfile
+    container_name: pozor_dom_device_service
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+    ports:
+      - ${DEVICE_SERVICE_PORT}:80
+    depends_on:
+      pozor_dom_device_postgres:
+        condition: service_healthy
+    networks:
+      - microservices
+
   pozor_dom_gateway:
     build:
       context: _gateway
@@ -63,6 +102,7 @@ services:
       - ${GATEWAY_PORT}:${GATEWAY_PORT}
     depends_on:
       - pozor_dom_auth_service
+      - pozor_dom_device_service
     networks:
       - microservices
 
@@ -72,4 +112,5 @@ networks:
 
 volumes:
   auth_postgres_data:
+  device_postgres_data:
   pgadmin_data:
